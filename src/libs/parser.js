@@ -20,7 +20,7 @@ var dictionary = {
     links: ['links'],
     contacts: ['contacts'],
     positions: ['positions', 'position'],
-    profiles: ['profiles', 'social connect'],
+    profiles: ['profiles', 'social connect', 'social-profiles', 'social profiles'],
     awards: ['awards'],
     honors: ['honors'],
     additional: ['additional'],
@@ -28,7 +28,9 @@ var dictionary = {
     interests: ['interests']
   },
   profiles: [
-    'github.com',
+    ['github.com', function() {
+      // TODO parse github page
+    }],
     'linkedin.com',
     'facebook.com',
     'bitbucket.org',
@@ -37,12 +39,19 @@ var dictionary = {
   // TODO
   inline: [
     'address',
-    'phone',
+    //'phone',
     'skype'
   ],
   regular: {
-    name: /([A-Z][a-z]*)(\s[A-Z][a-z]*)/,
-    email: /([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})/
+    name: [
+      /([A-Z][a-z]*)(\s[A-Z][a-z]*)/
+    ],
+    email: [
+      /([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})/
+    ],
+    phone: [
+      /((?:\+?\d{1,3}[\s-])?\(?\d{2,3}\)?[\s.-]?\d{3}[\s.-]\d{4,5})/
+    ]
   }
 };
 
@@ -62,11 +71,11 @@ function makeRegExpFromDictionary() {
   });
 
   _.forEach(dictionary.profiles, function(profile) {
-    regularRules.profiles.push("(https?:\/\/?"+profile+"[\/\w \.-]*)");
+    regularRules.profiles.push("(https?:\/\/(?:www\\.)?"+profile.replace('.', "\\.")+"[\/\\w \\.-]*)");
   });
 
   _.forEach(dictionary.inline, function(line) {
-    regularRules.inline.push(line+":?[\s]*(.*)");
+    regularRules.inline.push(line+":?[\\s]*(.*)");
   });
 
   return _.extend(dictionary, regularRules);
@@ -85,7 +94,7 @@ function parse(PreparedFile, cbReturnResume) {
     result,
     rows = rawFileData.split("\n");
 
-  // for debug
+  // save prepared file text (for debug)
   fs.writeFileSync('./parsed/'+PreparedFile.name + '.txt', rawFileData);
 
   var allTitles = _.flatten(_.toArray(rules.titles)).join('|');
@@ -95,6 +104,8 @@ function parse(PreparedFile, cbReturnResume) {
   // 2 parse by titles
   for (var i = 0; i < rows.length; i++) {
     row = rows[i];
+
+    row = rows[i] = parseDictionaryProfiles(row, Resume);
 
     _.forEach(rules.titles, function(expressions, key) {
       expressions = expressions || [];
@@ -158,12 +169,34 @@ function parseDictionaryRegular(data, Resume) {
   var regularDictionary = dictionary.regular,
     find;
 
-  _.forEach(regularDictionary, function(expression, key) {
-    find = new RegExp(expression).exec(data);
+  _.forEach(regularDictionary, function(expressions, key) {
+    _.forEach(expressions, function(expression) {
+      find = new RegExp(expression).exec(data);
+      if (find) {
+        Resume.addKey(key.toLowerCase(), find[0]);
+      }
+    });
+  });
+}
+
+/**
+ *
+ * @param row
+ * @param Resume
+ * @returns {*}
+ */
+function parseDictionaryProfiles(row, Resume) {
+  var regularDictionary = dictionary.profiles,
+    find,
+    modifiedRow = row;
+
+  _.forEach(regularDictionary, function(expression) {
+    find = new RegExp(expression).exec(row);
     if (find) {
-      Resume.addKey(key.toLowerCase(), find[0]);
+      Resume.addKey('profiles', find[0] + "\n");
+      modifiedRow = row.replace(find[0], '');
     }
   });
 
-  return Resume;
+  return modifiedRow;
 }

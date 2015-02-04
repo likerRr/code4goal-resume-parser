@@ -1,0 +1,23 @@
+{
+  "name": "cv-parser.dev",
+  "version": "1.0.0",
+  "description": "CV parser for microsoft contest",
+  "main": "parse.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alexey Lizurchik <al.lizurchik@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "^3.8.10",
+    "gulp-run": "^1.6.6",
+    "gulp-util": "^3.0.2"
+  },
+  "dependencies": {
+    "commander": "^2.6.0",
+    "mime": "^1.2.11",
+    "textract": "^0.19.0",
+    "underscore": "^1.7.0",
+    "colors": "^1.0.3"
+  }
+}

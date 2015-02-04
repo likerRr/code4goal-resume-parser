@@ -1,2 +1,2 @@
-# code4goal-resume-parser
+# Resume parser
 Solution for Code4Goal challenge

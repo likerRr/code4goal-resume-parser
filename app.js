@@ -1,8 +1,6 @@
-var fs = require('fs');
 var path = require('path');
 /** @type {Command} */
 var program = require('commander');
-var textract = require('textract');
 var SomeHR = require('./src/SomeHR')();
 
 program
@@ -27,6 +25,7 @@ SomeHR.iHaveCVPack(pack, function(err, files) {
   }
 
 	SomeHR.say('My stack for today are: ' + getFileNames(files));
+  /** @type {ParseBoy} */
   ParseBoy = Iam.needSomeoneToSortCV();
 
   ParseBoy.willHelpWithPleasure(files, function(PreparedFile) {
@@ -34,7 +33,7 @@ SomeHR.iHaveCVPack(pack, function(err, files) {
     ParseBoy.workingHardOn(PreparedFile, function(Resume) {
 
       ParseBoy.say('Here Resume for ' + PreparedFile.name + ':');
-      console.dir(Resume);
+      //console.dir(Resume);
     });
   });
 });

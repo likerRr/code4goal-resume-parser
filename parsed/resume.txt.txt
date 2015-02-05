@@ -54,6 +54,6 @@ Belarusian University of Informatics and Radioelectronics,
 BS in Modeling and computer-aided design of radioelectronics devices.
 EDUCATION self motivation
 profiles
-http://github.com/likerrr-blog
+https://github.com/likerrr
 http://linkedin.com/likerrr-blog
 {end}

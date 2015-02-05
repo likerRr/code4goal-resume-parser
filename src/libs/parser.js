@@ -1,6 +1,22 @@
 var _ = require('underscore');
 var resume = require('../Resume');
 var fs = require('fs');
+var http = require("http");
+var cheerio = require("cheerio");
+var request = require("request");
+
+var profilesInProgress = 0;
+
+
+function download(url, callback) {
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      callback(body);
+    } else {
+      callback(error)
+    }
+  });
+}
 
 module.exports = {
   parse: parse
@@ -28,8 +44,24 @@ var dictionary = {
     interests: ['interests']
   },
   profiles: [
-    ['github.com', function() {
+    ['github.com', function(url, Resume) {
       // TODO parse github page
+      download(url, function(data) {
+        if (data) {
+          var $ = cheerio.load(data);
+          console.log($('.vcard-fullname').text());
+          console.log($('.octicon-location').parent().text());
+          console.log($('.octicon-mail').parent().text());
+          console.log($('.octicon-link').parent().text());
+          console.log($('.octicon-clock').parent().text());
+          Resume.addKey('company', $('.octicon-organization').parent().text());
+          console.log("done");
+        } else {
+          console.log(data);
+        }
+        profilesInProgress--;
+      });
+
     }],
     'linkedin.com',
     'facebook.com',
@@ -71,7 +103,21 @@ function makeRegExpFromDictionary() {
   });
 
   _.forEach(dictionary.profiles, function(profile) {
-    regularRules.profiles.push("(https?:\/\/(?:www\\.)?"+profile.replace('.', "\\.")+"[\/\\w \\.-]*)");
+    var profileHandler,
+      profileExpr;
+
+    if (_.isArray(profile)) {
+      if (_.isFunction(profile[1])) {
+        profileHandler = profile[1];
+      }
+      profile = profile[0];
+    }
+    profileExpr = "(https?:\/\/(?:www\\.)?"+profile.replace('.', "\\.")+"[\/\\w \\.-]*)";
+    if (_.isFunction(profileHandler)) {
+      regularRules.profiles.push([profileExpr, profileHandler]);
+    } else {
+      regularRules.profiles.push(profileExpr);
+    }
   });
 
   _.forEach(dictionary.inline, function(line) {
@@ -81,58 +127,38 @@ function makeRegExpFromDictionary() {
   return _.extend(dictionary, regularRules);
 }
 
-var regularRules = makeRegExpFromDictionary();
+// dictionary is object, so it will be extended by referrence
+makeRegExpFromDictionary();
 
 function parse(PreparedFile, cbReturnResume) {
   var rawFileData = PreparedFile.raw,
     Resume = new resume(),
-    rules = regularRules,
-    ruleExpression,
-    isRuleFound,
-    searchExpression = '',
-    row,
-    result,
-    rows = rawFileData.split("\n");
+    rows = rawFileData.split("\n"),
+    row;
 
   // save prepared file text (for debug)
   fs.writeFileSync('./parsed/'+PreparedFile.name + '.txt', rawFileData);
 
-  var allTitles = _.flatten(_.toArray(rules.titles)).join('|');
-
-  // 1 parse by regulars
+  // 1 parse regulars
   parseDictionaryRegular(rawFileData, Resume);
-  // 2 parse by titles
+
   for (var i = 0; i < rows.length; i++) {
     row = rows[i];
 
+    // 2 parse profiles
     row = rows[i] = parseDictionaryProfiles(row, Resume);
-
-    _.forEach(rules.titles, function(expressions, key) {
-      expressions = expressions || [];
-      // means, that titled row is less than 5 words
-      if (countWords(row) <= 5) {
-        _.forEach(expressions, function(expression) {
-          ruleExpression = new RegExp(expression);
-          isRuleFound = ruleExpression.test(row);
-
-          if (isRuleFound) {
-            allTitles = _.without(allTitles.split('|'), key).join('|');
-            searchExpression = '(?:' + expression + ')((.*\n)+?)(?:'+allTitles+'|{end})';
-            // restore remaining text to search in relevant part of text
-            result = new RegExp(searchExpression, 'gm').exec(restoreTextByRows(i, rows));
-
-            if (result) {
-              Resume.addKey(key, result[1]);
-            }
-          }
-        });
-      }
-    });
-
+    // 3 parse titles
+    parseDictionaryTitles(Resume, rows, i);
   }
 
   if (_.isFunction(cbReturnResume)) {
-    cbReturnResume(Resume);
+    // wait until download and handle internet profile
+    var checkTimer = setInterval(function() {
+      if (profilesInProgress === 0) {
+        cbReturnResume(Resume);
+        clearInterval(checkTimer);
+      }
+    }, 200);
   } else {
     return console.error('cbReturnResume should be a function');
   }
@@ -165,6 +191,11 @@ function countWords(str) {
   return str.split(' ').length;
 }
 
+/**
+ *
+ * @param data
+ * @param Resume
+ */
 function parseDictionaryRegular(data, Resume) {
   var regularDictionary = dictionary.regular,
     find;
@@ -181,6 +212,43 @@ function parseDictionaryRegular(data, Resume) {
 
 /**
  *
+ * @param Resume
+ * @param rows
+ * @param rowIdx
+ */
+function parseDictionaryTitles(Resume, rows, rowIdx) {
+  var allTitles = _.flatten(_.toArray(dictionary.titles)).join('|'),
+    searchExpression = '',
+    row = rows[rowIdx],
+    ruleExpression,
+    isRuleFound,
+    result;
+
+  _.forEach(dictionary.titles, function(expressions, key) {
+    expressions = expressions || [];
+    // means, that titled row is less than 5 words
+    if (countWords(row) <= 5) {
+      _.forEach(expressions, function(expression) {
+        ruleExpression = new RegExp(expression);
+        isRuleFound = ruleExpression.test(row);
+
+        if (isRuleFound) {
+          allTitles = _.without(allTitles.split('|'), key).join('|');
+          searchExpression = '(?:' + expression + ')((.*\n)+?)(?:'+allTitles+'|{end})';
+          // restore remaining text to search in relevant part of text
+          result = new RegExp(searchExpression, 'gm').exec(restoreTextByRows(rowIdx, rows));
+
+          if (result) {
+            Resume.addKey(key, result[1]);
+          }
+        }
+      });
+    }
+  });
+}
+
+/**
+ *
  * @param row
  * @param Resume
  * @returns {*}
@@ -191,10 +259,22 @@ function parseDictionaryProfiles(row, Resume) {
     modifiedRow = row;
 
   _.forEach(regularDictionary, function(expression) {
+    var expressionHandler;
+
+    if (_.isArray(expression)) {
+      if (_.isFunction(expression[1])) {
+        expressionHandler = expression[1];
+      }
+      expression = expression[0];
+    }
     find = new RegExp(expression).exec(row);
     if (find) {
       Resume.addKey('profiles', find[0] + "\n");
       modifiedRow = row.replace(find[0], '');
+      if (_.isFunction(expressionHandler)) {
+        profilesInProgress++;
+        expressionHandler(find[0], Resume);
+      }
     }
   });
 

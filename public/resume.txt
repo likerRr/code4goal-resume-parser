@@ -76,5 +76,5 @@ EDUCATION
 EDUCATION self motivation
 
 profiles
-http://github.com/likerrr-blog
+https://github.com/likerrr
 http://linkedin.com/likerrr-blog

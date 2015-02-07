@@ -46,8 +46,7 @@ function main() {
           savedFiles += 1;
 
           if (savedFiles == files.length) {
-            ParseBoy.say('I finished! Please, check "/compile" folder where you can find each parsed profile in JSON ' +
-            'or all in one file "_all.json"');
+            ParseBoy.say('I finished! Please, check "/compile" folder where you can find each parsed profile in JSON');
             SomeHR.say('Thank you a lot! I can\'t even imagine, what would I do without your help, ParseBoy!');
             ParseBoy.say('You are welcome, have a nice day!');
 

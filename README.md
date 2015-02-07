@@ -236,5 +236,17 @@ All 'action' are by building `dictionary.js` file. For now it has only basics ru
     - When match found, parse text between current title and next title into `titles` or until EOF
     - Save parsed text (if found) under title key (`objective` or (and) `summary`)
     
+# Technologies / References
+Application built on javascript with [nodejs 0.10.31](http://nodejs.org/) under Windows 7 x64
+This [application on github](https://github.com/likerRr/code4goal-resume-parser)
+
+Dependencies are:
+- [cheerio](https://github.com/cheeriojs/cheerio)
+- [colors](https://github.com/Marak/colors.js)
+- [mime](https://github.com/broofa/node-mime)
+- [request](https://github.com/request/request)
+- [textract](https://github.com/dbashford/textract)
+- [underscore](https://github.com/jashkenas/underscore)
+    
 # In action
 ![In action](/docs/result.png?raw=true "In action")

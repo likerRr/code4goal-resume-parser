@@ -51,6 +51,22 @@ ParseBoy.prototype.workingHardOn = function(PreparedFile, cbGetResume) {
 
 /**
  *
+ * @param PreparedFile
+ * @param Resume
+ * @param path
+ * @param cbOnSaved
+ */
+ParseBoy.prototype.storeResume = function(PreparedFile, Resume, path, cbOnSaved) {
+  PreparedFile.addResume(Resume);
+
+  if (!_.isFunction(cbOnSaved)) {
+    return console.error('cbOnSaved should be a function');
+  }
+  PreparedFile.saveResume(path, cbOnSaved);
+};
+
+/**
+ *
  * @type {ParseBoy}
  */
 module.exports = ParseBoy;

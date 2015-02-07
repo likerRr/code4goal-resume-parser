@@ -10,10 +10,36 @@ function Resume() {
 }
 
 Resume.prototype.addKey = function(key, value) {
-  if (_.has(this.parts, key)) {
-    value = this.parts[key] + value;
-  }
+  value = value || '';
+  value = value.trim();
+  // reject falsy values
+  if (value) {
+    if (_.has(this.parts, key)) {
+      value = this.parts[key] + value;
+    }
 
-  this.parts[key] = value;
+    this.parts[key] = value;
+  }
 };
 
+Resume.prototype.addObject = function(key, options) {
+  var self = this;
+
+  if (!_.has(this.parts, key)) {
+    this.parts[key] = {};
+  }
+
+  _.forEach(options, function(optionVal, optionName) {
+    if (optionVal) {
+      self.parts[key][optionName] = optionVal;
+    }
+  });
+};
+
+/**
+ *
+ * @returns {String}
+ */
+Resume.prototype.jsoned = function() {
+  return JSON.stringify(this.parts);
+};

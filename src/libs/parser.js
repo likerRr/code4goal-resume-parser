@@ -1,97 +1,22 @@
 var _ = require('underscore');
 var resume = require('../Resume');
 var fs = require('fs');
-var http = require("http");
-var cheerio = require("cheerio");
-var request = require("request");
+var dictionary = require('./../dictionary.js');
 
-var profilesInProgress = 0;
-
-
-function download(url, callback) {
-  request(url, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      callback(body);
-    } else {
-      callback(error)
-    }
-  });
-}
+var profilesWatcher = {
+  // for change value by reference
+  inProgress: 0
+};
 
 module.exports = {
   parse: parse
-};
-
-var dictionary = {
-  titles: {
-    objective: ['objective', 'objectives'],
-    summary: ['summary'],
-    //technology: ['technology', 'technologies'],
-    experience: ['experience'],
-    education: ['education'],
-    skills: ['skills', 'Skills & Expertise', 'technology', 'technologies'],
-    languages: ['languages'],
-    courses: ['courses'],
-    projects: ['projects'],
-    links: ['links'],
-    contacts: ['contacts'],
-    positions: ['positions', 'position'],
-    profiles: ['profiles', 'social connect', 'social-profiles', 'social profiles'],
-    awards: ['awards'],
-    honors: ['honors'],
-    additional: ['additional'],
-    certification: ['certification', 'certifications'],
-    interests: ['interests']
-  },
-  profiles: [
-    ['github.com', function(url, Resume) {
-      // TODO parse github page
-      download(url, function(data) {
-        if (data) {
-          var $ = cheerio.load(data);
-          console.log($('.vcard-fullname').text());
-          console.log($('.octicon-location').parent().text());
-          console.log($('.octicon-mail').parent().text());
-          console.log($('.octicon-link').parent().text());
-          console.log($('.octicon-clock').parent().text());
-          Resume.addKey('company', $('.octicon-organization').parent().text());
-          console.log("done");
-        } else {
-          console.log(data);
-        }
-        profilesInProgress--;
-      });
-
-    }],
-    'linkedin.com',
-    'facebook.com',
-    'bitbucket.org',
-    'stackoverflow.com'
-  ],
-  // TODO
-  inline: [
-    'address',
-    //'phone',
-    'skype'
-  ],
-  regular: {
-    name: [
-      /([A-Z][a-z]*)(\s[A-Z][a-z]*)/
-    ],
-    email: [
-      /([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})/
-    ],
-    phone: [
-      /((?:\+?\d{1,3}[\s-])?\(?\d{2,3}\)?[\s.-]?\d{3}[\s.-]\d{4,5})/
-    ]
-  }
 };
 
 function makeRegExpFromDictionary() {
   var regularRules = {
     titles: {},
     profiles: [],
-    inline: []
+    inline: {}
   };
 
   _.forEach(dictionary.titles, function(titles, key) {
@@ -112,7 +37,7 @@ function makeRegExpFromDictionary() {
       }
       profile = profile[0];
     }
-    profileExpr = "(https?:\/\/(?:www\\.)?"+profile.replace('.', "\\.")+"[\/\\w \\.-]*)";
+    profileExpr = "((?:https?:\/\/)?(?:www\\.)?"+profile.replace('.', "\\.")+"[\/\\w \\.-]*)";
     if (_.isFunction(profileHandler)) {
       regularRules.profiles.push([profileExpr, profileHandler]);
     } else {
@@ -120,14 +45,14 @@ function makeRegExpFromDictionary() {
     }
   });
 
-  _.forEach(dictionary.inline, function(line) {
-    regularRules.inline.push(line+":?[\\s]*(.*)");
+  _.forEach(dictionary.inline, function(expr, name) {
+    regularRules.inline[name] = expr+":?[\\s]*(.*)";
   });
 
   return _.extend(dictionary, regularRules);
 }
 
-// dictionary is object, so it will be extended by referrence
+// dictionary is object, so it will be extended by reference
 makeRegExpFromDictionary();
 
 function parse(PreparedFile, cbReturnResume) {
@@ -137,7 +62,7 @@ function parse(PreparedFile, cbReturnResume) {
     row;
 
   // save prepared file text (for debug)
-  fs.writeFileSync('./parsed/'+PreparedFile.name + '.txt', rawFileData);
+  //fs.writeFileSync('./parsed/'+PreparedFile.name + '.txt', rawFileData);
 
   // 1 parse regulars
   parseDictionaryRegular(rawFileData, Resume);
@@ -149,12 +74,13 @@ function parse(PreparedFile, cbReturnResume) {
     row = rows[i] = parseDictionaryProfiles(row, Resume);
     // 3 parse titles
     parseDictionaryTitles(Resume, rows, i);
+    parseDictionaryInline(Resume, row);
   }
 
   if (_.isFunction(cbReturnResume)) {
     // wait until download and handle internet profile
     var checkTimer = setInterval(function() {
-      if (profilesInProgress === 0) {
+      if (profilesWatcher.inProgress === 0) {
         cbReturnResume(Resume);
         clearInterval(checkTimer);
       }
@@ -189,6 +115,22 @@ function restoreTextByRows(rowNum, allRows) {
  */
 function countWords(str) {
   return str.split(' ').length;
+}
+
+/**
+ *
+ * @param Resume
+ * @param row
+ */
+function parseDictionaryInline(Resume, row) {
+  var find;
+
+  _.forEach(dictionary.inline, function(expression, key) {
+    find = new RegExp(expression).exec(row);
+    if (find) {
+      Resume.addKey(key.toLowerCase(), find[1]);
+    }
+  });
 }
 
 /**
@@ -272,8 +214,8 @@ function parseDictionaryProfiles(row, Resume) {
       Resume.addKey('profiles', find[0] + "\n");
       modifiedRow = row.replace(find[0], '');
       if (_.isFunction(expressionHandler)) {
-        profilesInProgress++;
-        expressionHandler(find[0], Resume);
+        profilesWatcher.inProgress++;
+        expressionHandler(find[0], Resume, profilesWatcher);
       }
     }
   });

@@ -2,6 +2,7 @@ var path = require('path');
 var _ = require('underscore');
 var textract = require('textract');
 var mime = require('mime');
+var fs = require('fs');
 
 module.exports.run = processFile;
 
@@ -77,3 +78,23 @@ function PreparedFile(file, raw) {
   this.raw = raw;
   this.name = path.basename(file);
 }
+
+/**
+ *
+ * @param Resume
+ */
+PreparedFile.prototype.addResume = function(Resume) {
+  this.resume = Resume;
+};
+
+PreparedFile.prototype.saveResume = function(path, cbSavedResume) {
+  path = path || __dirname;
+
+  if (!_.isFunction(cbSavedResume)) {
+    return console.error('cbSavedResume should be a function');
+  }
+
+  if (fs.statSync(path).isDirectory() && this.resume) {
+    fs.writeFile(path + '/' + this.name + '.json', this.resume.jsoned(), cbSavedResume);
+  }
+};

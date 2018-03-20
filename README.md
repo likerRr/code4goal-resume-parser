@@ -1,3 +1,15 @@
+# IMPORTANT NOTICE
+
+Library currently is not actively maintained, but I still read all the issues and try to give directions of their solving.
+
+I believe during that year I will find time to fix existing issues and make it more library-like rather then application for fun (like it is for now).
+
+If you want to collaborate and solve some existing issues, there is a branch `ce` (community edition) where I merge community's PRs.
+
+Don't miss a chance to make `resume-parser` great again :)
+
+Also, there is a [project](https://github.com/perminder-klair/resume-parser) based on my resume-parser, which solved most of issues and published it's solution to npm. I believe it's more stable then current version of `resume-parser`.
+
 # Resume parser
 Solution for [Code4Goal - Coding Contest](http://app.crowdsourcehire.com/code4goal/)
 

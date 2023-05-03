@@ -48,7 +48,6 @@ function cleanTextByRows(data) {
  * @param cbAfterExtract
  */
 function extractText(file, cbAfterExtract) {
-  console.log(file)
   textract.fromFileWithPath(path.resolve(file), {preserveLineBreaks: true}, function(err, data) {
     if (err) {
       return console.log(err);

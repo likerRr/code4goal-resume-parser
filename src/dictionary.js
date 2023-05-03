@@ -12,7 +12,7 @@ module.exports = {
     skills: ['skills', 'Skills & Expertise', 'technology', 'technologies'],
     languages: ['languages'],
     courses: ['courses'],
-    projects: ['projects','personal projects'],
+    projects: ['projects', 'personal projects'],
     links: ['links'],
     contacts: ['contacts'],
     positions: ['positions', 'position'],

@@ -73,8 +73,5 @@ EDUCATION
     Belarusian University of Informatics and Radioelectronics,
     BS in Modeling and computer-aided design of radioelectronics devices.
 
-Profiles
-https://github.com/aldb
-https://www.linkedin.com/pub/alex-dubinchyk/a0/54b/760/en
 
 skype: cool-skype-id
